@@ -1,0 +1,37 @@
+version: '3.9'
+
+services:
+  agent:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./bugfix-agent.config.yaml:/app/bugfix-agent.config.yaml:ro
+      - audit-logs:/app/audit
+    environment:
+      - CONFIG_PATH=/app/bugfix-agent.config.yaml
+      - SENTRY_TOKEN=${SENTRY_TOKEN}
+      - SENTRY_WEBHOOK_SECRET=${SENTRY_WEBHOOK_SECRET}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Demo app — runs the intentionally buggy Express app for local E2E testing
+  demo-app:
+    build:
+      context: .
+      dockerfile: demo/Dockerfile
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+    profiles:
+      - demo
+
+volumes:
+  audit-logs:
