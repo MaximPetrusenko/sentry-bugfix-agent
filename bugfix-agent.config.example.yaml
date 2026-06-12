@@ -1,0 +1,95 @@
+## sentry-bugfix-agent configuration
+## Copy to bugfix-agent.config.yaml and fill in your values.
+## Secret values should use environment variable references: "${ENV_VAR_NAME}"
+
+sentry:
+  # Sentry auth token with project:read, event:read, issue:write scopes
+  token: "${SENTRY_TOKEN}"
+  # Webhook secret for verifying Sentry webhook signatures
+  webhookSecret: "${SENTRY_WEBHOOK_SECRET}"
+  organization: "my-org"
+  project: "my-project"
+  # Only process events from these environments. NEVER include "production".
+  environments:
+    - staging
+    - development
+  # Optional polling fallback interval (seconds). Set to 0 to disable polling.
+  pollIntervalSeconds: 60
+
+github:
+  token: "${GITHUB_TOKEN}"
+  owner: "my-org"
+  repo: "my-repo"
+  baseBranch: "main"
+
+anthropic:
+  apiKey: "${ANTHROPIC_API_KEY}"
+  # Model to use for the agent loop
+  model: "claude-opus-4-8"
+  # Maximum tokens per agent turn
+  maxTokensPerTurn: 8192
+
+guardrails:
+  # Glob patterns for files the agent IS allowed to modify
+  allowedPaths:
+    - "src/**"
+    - "tests/**"
+    - "test/**"
+    - "__tests__/**"
+    - "lib/**"
+    - "app/**"
+  # Glob patterns for files the agent is NEVER allowed to touch (takes precedence)
+  deniedPaths:
+    - "infra/**"
+    - "deploy/**"
+    - ".github/**"
+    - "**/*.lock"
+    - "**/package-lock.json"
+    - "**/yarn.lock"
+    - "**/pnpm-lock.yaml"
+    - "Dockerfile"
+    - "docker-compose*.yml"
+    - ".env*"
+  # Abort and file for humans if diff exceeds this many changed lines
+  maxDiffLines: 200
+  # Rate limits on agent runs
+  maxAgentRunsPerHour: 5
+  maxAgentRunsPerDay: 20
+
+triage:
+  severity:
+    # Regex patterns matched against error type or message → classified as critical
+    criticalPatterns:
+      - "OutOfMemory"
+      - "StackOverflow"
+      - "FATAL"
+    # Regex patterns matched against error type or message → classified as major
+    majorPatterns:
+      - "TypeError"
+      - "ReferenceError"
+      - "NullPointer"
+      - "Unhandled"
+    # Issues with these tags/fingerprints are classified as security → never auto-fixed
+    securityPatterns:
+      - "security"
+      - "auth"
+      - "injection"
+      - "xss"
+      - "sqli"
+      - "csrf"
+    # Event frequency thresholds for automatic severity upgrade
+    frequencyThreshold:
+      major: 10    # events in 24h → at least major
+      critical: 100  # events in 24h → critical
+  # Enable LLM-based secondary classification (uses Anthropic API)
+  useLlmClassification: false
+
+audit:
+  # Path to the JSONL audit log file
+  logPath: "./audit.jsonl"
+
+server:
+  # Port for the webhook receiver
+  port: 3000
+  # Host to bind to
+  host: "0.0.0.0"

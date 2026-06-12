@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+*.env
+.env
+.env.local
+audit.jsonl
+audit-*.jsonl
+*.log
+.DS_Store
+deploy/terraform/.terraform/
+deploy/terraform/*.tfstate
+deploy/terraform/*.tfstate.backup
+deploy/terraform/.terraform.lock.hcl
