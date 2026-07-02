@@ -1,4 +1,5 @@
 node_modules/
+bugfix-agent.config.yaml
 dist/
 coverage/
 *.env
