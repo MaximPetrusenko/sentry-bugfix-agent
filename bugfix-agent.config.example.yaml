@@ -16,10 +16,13 @@ sentry:
   # Add infrastructure/terraform repos here.
   blockedProjects:
     - tf-aws-infrastructure
-  # Only process events from these environments. NEVER include "production".
+  # Environments to monitor. You can include production here — the pipeline
+  # will detect the error and open a fix PR against baseBranch (your dev branch).
+  # Fixes always go to a PR for human review; the source environment doesn't change that.
   environments:
+    - production
     - staging
-    - development
+    - dev
   # Optional polling fallback interval (seconds). Set to 0 to disable polling.
   pollIntervalSeconds: 60
 

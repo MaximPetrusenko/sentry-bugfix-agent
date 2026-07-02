@@ -22,13 +22,9 @@ const SentryConfigSchema = z.object({
   projects: z.array(z.string()).min(1),
   // Sentry project slugs that are explicitly blocked — events from these are ignored.
   blockedProjects: z.array(z.string()).default([]),
-  environments: z
-    .array(z.string())
-    .min(1)
-    .refine(
-      (envs) => !envs.some((e) => e.toLowerCase() === 'production'),
-      'production environment is not allowed — this pipeline is for non-production environments only',
-    ),
+  // Environments to monitor. Fixes always target baseBranch in the repo config,
+  // regardless of which environment the error originated from.
+  environments: z.array(z.string()).min(1),
   pollIntervalSeconds: z.number().int().min(0).default(60),
 });
 

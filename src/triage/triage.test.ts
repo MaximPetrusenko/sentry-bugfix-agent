@@ -38,11 +38,17 @@ describe('createTriageEngine', () => {
     expect(result.severity).toBe('minor');
   });
 
-  it('rejects an event from a non-allowed environment', async () => {
+  it('rejects an event from an environment not in the monitored list', async () => {
     const engine = createTriageEngine(baseTriageConfig, ['staging'], ['*'], []);
-    const result = await engine.evaluate(makeEvent({ environment: 'production' }), 1);
+    const result = await engine.evaluate(makeEvent({ environment: 'some-unknown-env' }), 1);
     expect(result.shouldAutoFix).toBe(false);
-    expect(result.reason).toContain('production');
+    expect(result.reason).toContain('not in the allowed list');
+  });
+
+  it('processes production events when production is in the environments list', async () => {
+    const engine = createTriageEngine(baseTriageConfig, ['production', 'staging'], ['*'], []);
+    const result = await engine.evaluate(makeEvent({ environment: 'production' }), 1);
+    expect(result.shouldAutoFix).toBe(true);
   });
 
   it('rejects a duplicate issue', async () => {
