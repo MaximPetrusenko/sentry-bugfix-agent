@@ -7,8 +7,6 @@ export interface FeedbackHandlerOptions {
   octokit: Octokit;
   sentryClient: SentryClientInterface;
   auditLog: AuditLog;
-  owner: string;
-  repo: string;
   autoResolveOnMerge: boolean;
 }
 

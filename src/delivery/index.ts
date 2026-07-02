@@ -1,5 +1,5 @@
 import type { Octokit } from '@octokit/rest';
-import type { Config } from '../config.js';
+import type { GitHubRepoMapping } from '../config.js';
 import type { IssueContext, AgentResult, TriageResult, PullRequestResult } from '../types.js';
 import { createFixBranch, applyDiffToBranch } from './branch.js';
 import { openPullRequest } from './pull-request.js';
@@ -14,7 +14,7 @@ export interface Delivery {
   deliver(input: DeliveryInput): Promise<PullRequestResult>;
 }
 
-export function createDelivery(octokit: Octokit, config: Config['github']): Delivery {
+export function createDelivery(octokit: Octokit, config: GitHubRepoMapping): Delivery {
   return {
     async deliver(input: DeliveryInput): Promise<PullRequestResult> {
       const { issueContext, agentResult, triageResult } = input;

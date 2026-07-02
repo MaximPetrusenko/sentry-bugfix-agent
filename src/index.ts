@@ -35,8 +35,6 @@ const server = createWebhookServer(config, pipeline, {
   octokit,
   sentryClient,
   auditLog,
-  owner: config.github.owner,
-  repo: config.github.repo,
 });
 server.listen(config.server.port, config.server.host, () => {
   console.log(

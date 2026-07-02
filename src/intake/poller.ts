@@ -23,9 +23,10 @@ export function createPoller(config: Config, pipeline: Pipeline): Poller {
     running = true;
 
     try {
-      for (const env of config.sentry.environments) {
+      for (const project of config.sentry.projects.filter((p) => p !== '*')) {
+        for (const env of config.sentry.environments) {
         const issues = await client.listIssues({
-          project: config.sentry.project,
+          project,
           environment: env,
           query: 'is:unresolved',
           limit: 25,
@@ -48,7 +49,8 @@ export function createPoller(config: Config, pipeline: Pipeline): Poller {
             console.error(`[poller] Failed to process issue ${issue.id}:`, err);
           }
         }
-      }
+        } // end env loop
+      } // end project loop
     } catch (err) {
       console.error('[poller] Poll failed:', err);
     } finally {

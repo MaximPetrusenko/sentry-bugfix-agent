@@ -64,14 +64,14 @@ describe('E2E: pipeline integration', () => {
 
   describe('Triage gate', () => {
     it('passes a normal TypeError event for auto-fix', async () => {
-      const triage = createTriageEngine(triageConfig, ['staging']);
+      const triage = createTriageEngine(triageConfig, ['staging'], ['*'], []);
       const result = await triage.evaluate(makeEvent(), 5);
       expect(result.shouldAutoFix).toBe(true);
       expect(result.severity).toBe('major');
     });
 
     it('blocks security-tagged events from auto-fix', async () => {
-      const triage = createTriageEngine(triageConfig, ['staging']);
+      const triage = createTriageEngine(triageConfig, ['staging'], ['*'], []);
       const result = await triage.evaluate(
         makeEvent({ issueId: 'sec-1', message: 'sql injection attempt detected' }),
         1,
@@ -81,7 +81,7 @@ describe('E2E: pipeline integration', () => {
     });
 
     it('blocks events from non-allowed environments', async () => {
-      const triage = createTriageEngine(triageConfig, ['staging']);
+      const triage = createTriageEngine(triageConfig, ['staging'], ['*'], []);
       const result = await triage.evaluate(makeEvent({ environment: 'production' }), 1);
       expect(result.shouldAutoFix).toBe(false);
     });

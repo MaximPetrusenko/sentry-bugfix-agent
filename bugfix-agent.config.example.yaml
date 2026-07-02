@@ -3,12 +3,19 @@
 ## Secret values should use environment variable references: "${ENV_VAR_NAME}"
 
 sentry:
-  # Sentry auth token with project:read, event:read, issue:write scopes
+  # Sentry auth token with project:read, event:read, issue:read scopes
   token: "${SENTRY_TOKEN}"
   # Webhook secret for verifying Sentry webhook signatures
   webhookSecret: "${SENTRY_WEBHOOK_SECRET}"
   organization: "my-org"
-  project: "my-project"
+  # Sentry project slugs to process. Use ["*"] to accept all projects.
+  projects:
+    - api-core
+    - front-apps
+  # Projects that are explicitly blocked — events from these are always ignored.
+  # Add infrastructure/terraform repos here.
+  blockedProjects:
+    - tf-aws-infrastructure
   # Only process events from these environments. NEVER include "production".
   environments:
     - staging
@@ -18,9 +25,18 @@ sentry:
 
 github:
   token: "${GITHUB_TOKEN}"
-  owner: "my-org"
-  repo: "my-repo"
-  baseBranch: "main"
+  # Map each Sentry project slug to its GitHub repo.
+  # The pipeline routes fix PRs to the matching repo.
+  # Use sentryProject: "*" as a fallback default.
+  repos:
+    - sentryProject: "api-core"
+      owner: "my-org"
+      repo: "api-core"
+      baseBranch: "main"
+    - sentryProject: "front-apps"
+      owner: "my-org"
+      repo: "front-apps"
+      baseBranch: "main"
 
 # Which LLM provider to use for the agent loop: anthropic | openai
 agentProvider: anthropic

@@ -10,6 +10,8 @@ export interface TriageEngine {
 export function createTriageEngine(
   config: Config['triage'],
   allowedEnvironments: string[],
+  allowedProjects: string[],
+  blockedProjects: string[],
   dedupStore: DedupStore = createInMemoryDedupStore(),
 ): TriageEngine {
   return {
@@ -29,6 +31,30 @@ export function createTriageEngine(
         tags: [],
         project: { slug: event.projectSlug },
       };
+
+      // Blocked project filter (hard deny — e.g. infra repos)
+      if (blockedProjects.includes(event.projectSlug)) {
+        return {
+          issueId: event.issueId,
+          severity: 'minor',
+          shouldAutoFix: false,
+          reason: `Project "${event.projectSlug}" is in the blocked list`,
+          event,
+          issue: stub,
+        };
+      }
+
+      // Allowed project filter
+      if (!allowedProjects.includes('*') && !allowedProjects.includes(event.projectSlug)) {
+        return {
+          issueId: event.issueId,
+          severity: 'minor',
+          shouldAutoFix: false,
+          reason: `Project "${event.projectSlug}" is not in the allowed projects list`,
+          event,
+          issue: stub,
+        };
+      }
 
       // Environment filter
       if (!allowedEnvironments.includes(event.environment)) {

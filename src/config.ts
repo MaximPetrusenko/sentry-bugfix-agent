@@ -18,7 +18,10 @@ const SentryConfigSchema = z.object({
   token: EnvString,
   webhookSecret: EnvString,
   organization: z.string().min(1),
-  project: z.string().min(1),
+  // List of Sentry project slugs to process. Use "*" to accept all projects.
+  projects: z.array(z.string()).min(1),
+  // Sentry project slugs that are explicitly blocked — events from these are ignored.
+  blockedProjects: z.array(z.string()).default([]),
   environments: z
     .array(z.string())
     .min(1)
@@ -29,11 +32,20 @@ const SentryConfigSchema = z.object({
   pollIntervalSeconds: z.number().int().min(0).default(60),
 });
 
-const GitHubConfigSchema = z.object({
-  token: EnvString,
+const GitHubRepoMappingSchema = z.object({
+  // Sentry project slug this repo is mapped to. Use "*" as the default/fallback.
+  sentryProject: z.string().min(1),
   owner: z.string().min(1),
   repo: z.string().min(1),
   baseBranch: z.string().min(1).default('main'),
+});
+
+const GitHubConfigSchema = z.object({
+  token: EnvString,
+  // Map Sentry project slugs to GitHub repos.
+  // The pipeline picks the first entry whose sentryProject matches the event's project slug.
+  // Add an entry with sentryProject: "*" as a fallback default.
+  repos: z.array(GitHubRepoMappingSchema).min(1),
 });
 
 const AnthropicConfigSchema = z.object({
@@ -136,6 +148,20 @@ export const ConfigSchema = z
   });
 
 export type Config = z.infer<typeof ConfigSchema>;
+export type GitHubRepoMapping = z.infer<typeof GitHubRepoMappingSchema>;
+
+/**
+ * Find the GitHub repo config for a given Sentry project slug.
+ * Returns the first matching entry, then falls back to a "*" wildcard entry.
+ */
+export function resolveRepo(config: Config, sentryProjectSlug: string): GitHubRepoMapping | null {
+  const repos = config.github.repos;
+  return (
+    repos.find((r) => r.sentryProject === sentryProjectSlug) ??
+    repos.find((r) => r.sentryProject === '*') ??
+    null
+  );
+}
 
 export function loadConfig(configPath: string): Config {
   let raw: unknown;

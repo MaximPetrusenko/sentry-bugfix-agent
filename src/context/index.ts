@@ -1,6 +1,6 @@
 import { resolve } from 'path';
 import type { TriageResult, IssueContext, SentryIssueDetails } from '../types.js';
-import type { Config } from '../config.js';
+import type { GitHubRepoMapping } from '../config.js';
 import type { SentryClientInterface } from './sentry-client.js';
 import { createFrameMapper } from './frame-mapper.js';
 import { getGitHistory } from './git-history.js';
@@ -11,7 +11,7 @@ export interface ContextAssembler {
 
 export function createContextAssembler(
   sentryClient: SentryClientInterface,
-  githubConfig: Config['github'],
+  repoMapping: GitHubRepoMapping,
   repoRoot?: string,
 ): ContextAssembler {
   const frameMapper = createFrameMapper();

@@ -1,6 +1,7 @@
 import type { Config } from './config.js';
 import type { SentryEvent, TriageResult } from './types.js';
 import type { AuditLog } from './guardrails/audit-log.js';
+import { resolveRepo } from './config.js';
 import { createTriageEngine } from './triage/index.js';
 import { createContextAssembler } from './context/index.js';
 import { createGuardrails } from './guardrails/index.js';
@@ -21,11 +22,14 @@ export function createPipeline(config: Config, auditLog: AuditLog): Pipeline {
 
   const octokit = new Octokit({ auth: config.github.token });
 
-  const triage = createTriageEngine(config.triage, config.sentry.environments);
-  const context = createContextAssembler(sentryClient, config.github);
+  const triage = createTriageEngine(
+    config.triage,
+    config.sentry.environments,
+    config.sentry.projects,
+    config.sentry.blockedProjects,
+  );
   const guardrails = createGuardrails(config.guardrails, auditLog);
   const dispatcher = createAgentDispatcher(config, auditLog);
-  const delivery = createDelivery(octokit, config.github);
 
   return {
     async processEvent(event: SentryEvent): Promise<void> {
@@ -35,7 +39,7 @@ export function createPipeline(config: Config, auditLog: AuditLog): Pipeline {
         issueId,
         phase: 'intake',
         action: 'event_received',
-        detail: { eventId: event.id, environment: event.environment, errorType: event.errorType },
+        detail: { eventId: event.id, environment: event.environment, errorType: event.errorType, project: event.projectSlug },
       });
 
       // Triage
@@ -70,6 +74,19 @@ export function createPipeline(config: Config, auditLog: AuditLog): Pipeline {
         return;
       }
 
+      // Resolve the target GitHub repo for this Sentry project
+      const repoConfig = resolveRepo(config, event.projectSlug);
+      if (!repoConfig) {
+        await auditLog.append({
+          issueId,
+          phase: 'triage',
+          action: 'no_repo_mapping',
+          detail: { projectSlug: event.projectSlug },
+        });
+        console.warn(`[pipeline] No GitHub repo mapped for Sentry project "${event.projectSlug}", skipping`);
+        return;
+      }
+
       // Check rate limits before doing expensive work
       const rateLimitOk = await guardrails.checkRateLimit(issueId);
       if (!rateLimitOk) {
@@ -83,7 +100,8 @@ export function createPipeline(config: Config, auditLog: AuditLog): Pipeline {
         return;
       }
 
-      // Context assembly
+      // Context assembly — scoped to the resolved repo
+      const context = createContextAssembler(sentryClient, repoConfig);
       let issueContext;
       try {
         issueContext = await context.assemble(triageResult);
@@ -133,24 +151,19 @@ export function createPipeline(config: Config, auditLog: AuditLog): Pipeline {
           action: 'guardrail_failed',
           detail: { reason: guardrailResult.reason },
         });
-        console.warn(
-          `[pipeline] Guardrail blocked fix for ${issueId}: ${guardrailResult.reason}`,
-        );
+        console.warn(`[pipeline] Guardrail blocked fix for ${issueId}: ${guardrailResult.reason}`);
         return;
       }
 
-      // Delivery
+      // Delivery — use the resolved repo config
+      const delivery = createDelivery(octokit, repoConfig);
       try {
-        const pr = await delivery.deliver({
-          issueContext,
-          agentResult,
-          triageResult,
-        });
+        const pr = await delivery.deliver({ issueContext, agentResult, triageResult });
         await auditLog.append({
           issueId,
           phase: 'delivery',
           action: 'pr_opened',
-          detail: { prUrl: pr.url, prNumber: pr.number, branch: pr.branch },
+          detail: { prUrl: pr.url, prNumber: pr.number, branch: pr.branch, repo: repoConfig.repo },
         });
         console.log(`[pipeline] PR opened for ${issueId}: ${pr.url}`);
       } catch (err) {
