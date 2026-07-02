@@ -9,6 +9,7 @@ export interface FeedbackHandlerOptions {
   auditLog: AuditLog;
   owner: string;
   repo: string;
+  autoResolveOnMerge: boolean;
 }
 
 /**
@@ -68,22 +69,27 @@ async function handlePrEvent(action: string, pr: any, options: FeedbackHandlerOp
     const merged: boolean = pr?.merged ?? false;
 
     if (merged) {
-      // PR merged — resolve the Sentry issue
       await options.auditLog.append({
         issueId: sentryIssueId,
         phase: 'feedback',
         action: 'pr_merged',
-        detail: { prNumber, prUrl },
+        detail: { prNumber, prUrl, autoResolve: options.autoResolveOnMerge },
       });
 
-      try {
-        await options.sentryClient.resolveIssue(
-          sentryIssueId,
-          `Resolved by agent-generated fix. PR: ${prUrl}`,
+      if (options.autoResolveOnMerge) {
+        try {
+          await options.sentryClient.resolveIssue(
+            sentryIssueId,
+            `Resolved by agent-generated fix. PR: ${prUrl}`,
+          );
+          console.log(`[feedback] Resolved Sentry issue ${sentryIssueId} after PR ${prNumber} merged`);
+        } catch (err) {
+          console.error(`[feedback] Failed to resolve Sentry issue ${sentryIssueId}:`, err);
+        }
+      } else {
+        console.log(
+          `[feedback] PR ${prNumber} merged for issue ${sentryIssueId} — autoResolveOnMerge is off, resolve manually in Sentry`,
         );
-        console.log(`[feedback] Resolved Sentry issue ${sentryIssueId} after PR ${prNumber} merged`);
-      } catch (err) {
-        console.error(`[feedback] Failed to resolve Sentry issue ${sentryIssueId}:`, err);
       }
     } else {
       // PR closed without merging — mark for manual handling

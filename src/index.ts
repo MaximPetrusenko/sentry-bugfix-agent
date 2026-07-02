@@ -6,6 +6,8 @@ import { createWebhookServer } from './intake/webhook.js';
 import { createPoller } from './intake/poller.js';
 import { createAuditLog } from './guardrails/audit-log.js';
 import { createPipeline } from './pipeline.js';
+import { SentryMcpClient } from './context/sentry-client.js';
+import { Octokit } from '@octokit/rest';
 
 const configPath = process.env['CONFIG_PATH'] ?? resolve(process.cwd(), 'bugfix-agent.config.yaml');
 
@@ -20,7 +22,19 @@ try {
 const auditLog = createAuditLog(config.audit.logPath);
 const pipeline = createPipeline(config, auditLog);
 
-const server = createWebhookServer(config, pipeline);
+const sentryClient = new SentryMcpClient({
+  token: config.sentry.token,
+  organization: config.sentry.organization,
+});
+const octokit = new Octokit({ auth: config.github.token });
+
+const server = createWebhookServer(config, pipeline, {
+  octokit,
+  sentryClient,
+  auditLog,
+  owner: config.github.owner,
+  repo: config.github.repo,
+});
 server.listen(config.server.port, config.server.host, () => {
   console.log(
     `[sentry-bugfix-agent] Webhook server listening on ${config.server.host}:${config.server.port}`,

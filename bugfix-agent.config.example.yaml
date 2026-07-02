@@ -84,6 +84,11 @@ triage:
   # Enable LLM-based secondary classification (uses Anthropic API)
   useLlmClassification: false
 
+feedback:
+  # Set to true to automatically resolve the Sentry issue when the fix PR is merged.
+  # Defaults to false — you confirm the fix works in your environment before resolving manually.
+  autoResolveOnMerge: false
+
 audit:
   # Path to the JSONL audit log file
   logPath: "./audit.jsonl"

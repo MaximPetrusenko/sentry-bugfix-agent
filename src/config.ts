@@ -80,6 +80,12 @@ const AuditConfigSchema = z.object({
   logPath: z.string().default('./audit.jsonl'),
 });
 
+const FeedbackConfigSchema = z.object({
+  // When true, resolves the Sentry issue automatically after the fix PR is merged.
+  // Defaults to false — you confirm the fix works before resolving manually.
+  autoResolveOnMerge: z.boolean().default(false),
+});
+
 const ServerConfigSchema = z.object({
   port: z.number().int().min(1).max(65535).default(3000),
   host: z.string().default('0.0.0.0'),
@@ -100,6 +106,7 @@ export const ConfigSchema = z.object({
     useLlmClassification: false,
   }),
   audit: AuditConfigSchema.default({}),
+  feedback: FeedbackConfigSchema.default({}),
   server: ServerConfigSchema.default({}),
 });
 

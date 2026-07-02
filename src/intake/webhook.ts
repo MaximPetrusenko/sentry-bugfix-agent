@@ -3,8 +3,14 @@ import express, { type Request, type Response } from 'express';
 import type { Config } from '../config.js';
 import type { Pipeline } from '../pipeline.js';
 import type { SentryEvent } from '../types.js';
+import { registerFeedbackRoutes } from '../delivery/feedback.js';
+import type { FeedbackHandlerOptions } from '../delivery/feedback.js';
 
-export function createWebhookServer(config: Config, pipeline: Pipeline): express.Express {
+export function createWebhookServer(
+  config: Config,
+  pipeline: Pipeline,
+  feedbackOptions?: Omit<FeedbackHandlerOptions, 'autoResolveOnMerge'>,
+): express.Express {
   const app = express();
   app.use(express.json({ limit: '1mb' }));
 
@@ -49,6 +55,13 @@ export function createWebhookServer(config: Config, pipeline: Pipeline): express
 
     res.status(200).json({ received: true, processed: true });
   });
+
+  if (feedbackOptions) {
+    registerFeedbackRoutes(app, {
+      ...feedbackOptions,
+      autoResolveOnMerge: config.feedback.autoResolveOnMerge,
+    });
+  }
 
   return app;
 }
