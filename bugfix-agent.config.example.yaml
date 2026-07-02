@@ -22,12 +22,20 @@ github:
   repo: "my-repo"
   baseBranch: "main"
 
+# Which LLM provider to use for the agent loop: anthropic | openai
+agentProvider: anthropic
+
+# Required when agentProvider is "anthropic"
 anthropic:
   apiKey: "${ANTHROPIC_API_KEY}"
-  # Model to use for the agent loop
   model: "claude-opus-4-8"
-  # Maximum tokens per agent turn
   maxTokensPerTurn: 8192
+
+# Required when agentProvider is "openai"
+# openai:
+#   apiKey: "${OPENAI_API_KEY}"
+#   model: "gpt-4o"
+#   maxTokensPerTurn: 8192
 
 guardrails:
   # Glob patterns for files the agent IS allowed to modify

@@ -30,6 +30,7 @@
     "express": "^4.21.2",
     "js-yaml": "^4.1.0",
     "micromatch": "^4.0.8",
+    "openai": "^6.45.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

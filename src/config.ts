@@ -42,6 +42,12 @@ const AnthropicConfigSchema = z.object({
   maxTokensPerTurn: z.number().int().min(1).max(32768).default(8192),
 });
 
+const OpenAIConfigSchema = z.object({
+  apiKey: EnvString,
+  model: z.string().min(1).default('gpt-4o'),
+  maxTokensPerTurn: z.number().int().min(1).max(32768).default(8192),
+});
+
 const GuardrailsConfigSchema = z.object({
   allowedPaths: z.array(z.string()).min(1),
   deniedPaths: z.array(z.string()).default([
@@ -91,24 +97,43 @@ const ServerConfigSchema = z.object({
   host: z.string().default('0.0.0.0'),
 });
 
-export const ConfigSchema = z.object({
-  sentry: SentryConfigSchema,
-  github: GitHubConfigSchema,
-  anthropic: AnthropicConfigSchema,
-  guardrails: GuardrailsConfigSchema,
-  triage: TriageConfigSchema.default({
-    severity: {
-      criticalPatterns: [],
-      majorPatterns: [],
-      securityPatterns: ['security', 'auth', 'injection', 'xss'],
-      frequencyThreshold: { major: 10, critical: 100 },
-    },
-    useLlmClassification: false,
-  }),
-  audit: AuditConfigSchema.default({}),
-  feedback: FeedbackConfigSchema.default({}),
-  server: ServerConfigSchema.default({}),
-});
+export const ConfigSchema = z
+  .object({
+    sentry: SentryConfigSchema,
+    github: GitHubConfigSchema,
+    agentProvider: z.enum(['anthropic', 'openai']).default('anthropic'),
+    anthropic: AnthropicConfigSchema.optional(),
+    openai: OpenAIConfigSchema.optional(),
+    guardrails: GuardrailsConfigSchema,
+    triage: TriageConfigSchema.default({
+      severity: {
+        criticalPatterns: [],
+        majorPatterns: [],
+        securityPatterns: ['security', 'auth', 'injection', 'xss'],
+        frequencyThreshold: { major: 10, critical: 100 },
+      },
+      useLlmClassification: false,
+    }),
+    audit: AuditConfigSchema.default({}),
+    feedback: FeedbackConfigSchema.default({}),
+    server: ServerConfigSchema.default({}),
+  })
+  .superRefine((data, ctx) => {
+    if (data.agentProvider === 'anthropic' && !data.anthropic) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['anthropic'],
+        message: 'anthropic config is required when agentProvider is "anthropic"',
+      });
+    }
+    if (data.agentProvider === 'openai' && !data.openai) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['openai'],
+        message: 'openai config is required when agentProvider is "openai"',
+      });
+    }
+  });
 
 export type Config = z.infer<typeof ConfigSchema>;
 

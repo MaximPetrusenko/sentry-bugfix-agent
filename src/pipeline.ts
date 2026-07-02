@@ -8,7 +8,6 @@ import { createAgentDispatcher } from './agent/index.js';
 import { createDelivery } from './delivery/index.js';
 import { SentryMcpClient } from './context/sentry-client.js';
 import { Octokit } from '@octokit/rest';
-import Anthropic from '@anthropic-ai/sdk';
 
 export interface Pipeline {
   processEvent(event: SentryEvent): Promise<void>;
@@ -21,12 +20,11 @@ export function createPipeline(config: Config, auditLog: AuditLog): Pipeline {
   });
 
   const octokit = new Octokit({ auth: config.github.token });
-  const anthropic = new Anthropic({ apiKey: config.anthropic.apiKey });
 
   const triage = createTriageEngine(config.triage, config.sentry.environments);
   const context = createContextAssembler(sentryClient, config.github);
   const guardrails = createGuardrails(config.guardrails, auditLog);
-  const dispatcher = createAgentDispatcher(anthropic, config.anthropic, auditLog);
+  const dispatcher = createAgentDispatcher(config, auditLog);
   const delivery = createDelivery(octokit, config.github);
 
   return {

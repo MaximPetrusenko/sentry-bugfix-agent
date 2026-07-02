@@ -9,6 +9,9 @@ import { createPipeline } from './pipeline.js';
 import { SentryMcpClient } from './context/sentry-client.js';
 import { Octokit } from '@octokit/rest';
 
+// Note: Anthropic/OpenAI clients are constructed inside createPipeline based on agentProvider.
+// The Octokit and SentryMcpClient below are solely for the feedback webhook handler.
+
 const configPath = process.env['CONFIG_PATH'] ?? resolve(process.cwd(), 'bugfix-agent.config.yaml');
 
 let config;
